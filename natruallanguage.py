@@ -32,11 +32,19 @@ def BinarySearch(lys, val):
     return index
 
 
-def getTickerCount(tickers, oneText):
+def getTickerCount(tickers, oneText, subreddit, caseInsensitive=True):
 
-    oneText = oneText.lower().replace("`", "")
+    # Remove punctuation that shouldn't have a space
+    oneText = oneText.replace("'", "").replace("’", "")
 
-    tokens = nltk.word_tokenize(oneText)
+    if caseInsensitive:
+        oneText = oneText.lower()
+
+    oneText = oneText.translate(
+        str.maketrans(string.punctuation, " "*len(string.punctuation)))
+
+    tokens = nltk.word_tokenize(
+        oneText.translate(dict.fromkeys(string.punctuation)))
 
     tickerFilter = [w for w in tokens if BinarySearch(tickers, w) != -1]
     tickerCounter = Counter(tickerFilter)
@@ -48,8 +56,9 @@ def getTickerCount(tickers, oneText):
     tickerTracker = list()
     for ticker in tickers:
         if tickerCounter[ticker] > 0:
-            item = tckr.Ticker(ticker, tickerCounter[ticker])
-            item.normalize(totalCnt)
+            item = tckr.Ticker(ticker)
+            item.cnt[subreddit] = tickerCounter[ticker]
+            item.normalize(subreddit, totalCnt)
             tickerTracker.append(item)
 
     return tickerTracker

@@ -21,8 +21,23 @@ def readRedditFile(subreddit, dateStr):
 
 
 def writeTickerData(subreddit, dateStr, tickerTracker):
-    with open('cache/history/history-{}.bin'.format(dateStr), 'wb') as file:
-        pickle.dump(tickerTracker, file)
+    fileName = 'cache/history/history-{}.bin'.format(dateStr)
+
+    if path.exists(fileName):
+        cachedData = readTickerData(dateStr)
+        # If the symbol exists, update for the given subreddit
+        for ticker in tickerTracker:
+            if ticker in cachedData:
+                index = cachedData.index(ticker)
+                cachedData[index].cnt[subreddit] = ticker.cnt[subreddit]
+                cachedData[index].normalizedCnt[subreddit] = ticker.normalizedCnt[subreddit]
+            else:
+                cachedData.append(ticker)
+        with open(fileName, 'wb') as file:
+            pickle.dump(cachedData, file)
+    else:
+        with open(fileName, 'wb') as file:
+            pickle.dump(tickerTracker, file)
 
 
 def readTickerData(dateStr):
@@ -34,4 +49,4 @@ def readTickerData(dateStr):
 
 
 if __name__ == "__main__":
-    readTickerData('2021-1-31')
+    print(readTickerData('2021-2-1'))

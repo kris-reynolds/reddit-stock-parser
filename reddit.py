@@ -56,26 +56,38 @@ def redditCount(subreddit, dateStr):
     tickers = cache.readTickerFile(file='cache/tickers.txt')
     tickers = tckr.stripNaturalWordTickers(tickers)
 
-    tickerTracker = nl.getTickerCount(tickers, oneText)
+    tickerTracker = nl.getTickerCount(
+        tickers,
+        oneText,
+        subreddit,
+        caseInsensitive=True)
+
+    # tickerTracker.extend(
+    #     nl.getTickerCount(
+    #         tckr.tickersThatAreWords,
+    #         oneText,
+    #         subreddit,
+    #         caseInsensitive=False))
+
     return tickerTracker
 
 
-def parseRedditToday(dateStr, subreddit='wallstreetbets'):
+def parseRedditToday(subreddit, dateStr):
     loadReddit(subreddit, dateStr)
     tickerTracker = redditCount(subreddit, dateStr)
     cache.writeTickerData(subreddit, dateStr, tickerTracker)
 
     return tickerTracker
 
-
-def plotTrending():
-    numDays = 7
+def plotTrending(subreddit, symbol=None):
+    numDays = 14
     trendingHistory = list()
 
     # Read the last week of data (if available)
     for dayDelta in range(numDays, -1, -1):
         day = datetime.datetime.today() - datetime.timedelta(dayDelta)
         dayStr = "{}-{}-{}".format(day.year, day.month, day.day)
+
         history = cache.readTickerData(dayStr)
         if history is not None:
             trendingHistory.append(history)
@@ -86,47 +98,64 @@ def plotTrending():
 
     for tickerList in trendingHistory:
         for ticker in tickerList:
-            if ticker.symbol not in history:
-                history[ticker.symbol] = [0] * (len(trendingHistory))
-            history[ticker.symbol][prevDays] = ticker.normalizedCnt
+            if subreddit in ticker.normalizedCnt:
+                if ticker.symbol not in history:
+                    history[ticker.symbol] = [0] * (len(trendingHistory))
+                history[ticker.symbol][prevDays] = ticker.normalizedCnt[subreddit]
         prevDays += 1
 
-    plt.title('Ticker Mentions over time last week')
+    plt.title('Ticker Mentions over time last week' + subreddit)
     plt.xlabel('Days')
     plt.ylabel('Mentions')
 
     x = range(1, (len(trendingHistory))+1)
 
     for ticker in history:
-        if max(history[ticker]) > 0.01:
-            plt.plot(x, history[ticker], label=ticker)
-    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+        if max(history[ticker]) > 0.03:
+            if symbol is None or symbol.lower() == ticker.lower():
+                plt.plot(x, history[ticker], label=ticker)
+
+    plt.legend(
                ncol=2, mode="expand", borderaxespad=0.)
+
+
     plt.show()
 
 
-def plotDay(dayStr):
+
+def plotDay(subreddit, dayStr):
 
     tickerTracker = cache.readTickerData(dayStr)
+
+    for ticker in tickerTracker:
+        ticker.subreddit = subreddit
+
+    tickerTracker = sorted(tickerTracker)
     tickersFound = list()
     tickerCnt = list()
     for ticker in tickerTracker:
-        if ticker.normalizedCnt > 0.01:
-            tickerCnt.append(ticker.normalizedCnt)
+        if subreddit in ticker.normalizedCnt and ticker.normalizedCnt[subreddit] > 0.005:
+            tickerCnt.append(ticker.normalizedCnt[subreddit])
             tickersFound.append(ticker.symbol)
 
     plt.bar(tickersFound, tickerCnt)
-    plt.title('Ticker Vs Mentions on WSB ' + dayStr)
+    plt.title('Ticker Vs Mentions on ' + subreddit + ' ' + dayStr)
     plt.xlabel('Ticker')
     plt.ylabel('Mentions')
+
     plt.show()
+
 
 
 if __name__ == "__main__":
     today = datetime.datetime.today()
     dayStr = "{}-{}-{}".format(today.year, today.month, today.day)
 
-    parseRedditToday(dayStr, 'wallstreetbets')
+    subreddit = 'wallstreetbets'
+    parseRedditToday('pennystocks', dayStr)
+    parseRedditToday('wallstreetbets', dayStr)
+    #parseRedditToday(subreddit, '2021-1-31')
 
-    plotTrending()
-    plotDay(dayStr)
+    #plotTrending(subreddit)
+    plotDay('pennystocks', dayStr)
+    plotDay('wallstreetbets', dayStr)

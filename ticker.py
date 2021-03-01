@@ -3,63 +3,274 @@ import cache
 import credentials
 import time
 
+tickersThatAreWords = [
+    'A',
+    'AG',
+    'AGE',
+    'AGO',
+    'AI',
+    'AIN',
+    'AIR',
+    'ALL',
+    'ALOT',
+    'AM',
+    'AMP',
+    'AN',
+    'ANY',
+    'APPS',
+    'ARE',
+    'AT',
+    'AWAY',
+    'BAR',
+    'BE',
+    'BEAT',
+    'BEST',
+    'BIG',
+    'BILL',
+    'BIT',
+    'BOND',
+    'BOOM',
+    'BRO',
+    'BUD',
+    'BY',
+    'CAKE',
+    'CALM',
+    'CAN',
+    'CAR',
+    'CARE',
+    'CARS',
+    'CASH',
+    'CBD',
+    'CEO',
+    'CHAD',
+    'CO',
+    'COLD',
+    'COM',
+    'CORP',
+    'COST',
+    'CRY',
+    'CUT',
+    'CUZ',
+    'DARE',
+    'DD',
+    'DEEP',
+    'DOG',
+    'DON',
+    'DUST',
+    'EAST',
+    'EAT',
+    'EDIT',
+    'ELSE',
+    'EVER',
+    'EYE',
+    'EYES',
+    'FAD',
+    'FAN',
+    'FAST',
+    'FILL',
+    'FIVE',
+    'FIX',
+    'FL',
+    'FLEX',
+    'FLOW',
+    'FOLD',
+    'FOR',
+    'FORM',
+    'FOUR',
+    'FREE',
+    'FUN',
+    'FUND',
+    'GAIN',
+    'GEM',
+    'GLAD',
+    'GO',
+    'GOLD',
+    'GOOD',
+    'GROW',
+    'HA',
+    'HAS',
+    'HE',
+    'HEAR',
+    'HES',
+    'HI',
+    'HOLD',
+    'HOME',
+    'HON',
+    'HOPE',
+    'HUGE',
+    'ICON',
+    'IMO',
+    'INFO',
+    'IPO',
+    'IT',
+    'IVE',
+    'JAN',
+    'JOB',
+    'JOE',
+    'JUST',
+    'KEY',
+    'KIDS',
+    'LAND',
+    'LAWS',
+    'LEAD',
+    'LEE',
+    'LIFE',
+    'LIVE',
+    'LL',
+    'LOAN',
+    'LOVE',
+    'LOW',
+    'MAIN',
+    'MAN',
+    'MARK',
+    'MID',
+    'MIN',
+    'MIND',
+    'MOD',
+    'MOM',
+    'MSM',
+    'MUST',
+    'NAIL',
+    'NEAR',
+    'NET',
+    'NEW',
+    'NEXT',
+    'NICE',
+    'NINE',
+    'NOW',
+    'NYT',
+    'OIL',
+    'OLD',
+    'ON',
+    'ONE',
+    'ONTO',
+    'OR',
+    'PAYS',
+    'PEAK',
+    'PICK',
+    'PINS',
+    'PLAN',
+    'PLAY',
+    'PLUS',
+    'POST',
+    'PPL',
+    'PRO',
+    'PS',
+    'PUMP',
+    'R',
+    'RE',
+    'REAL',
+    'RH',
+    'ROCK',
+    'RUN',
+    'SAFE',
+    'SAVE',
+    'SEE',
+    'SEED',
+    'SELF',
+    'SHE',
+    'SHE',
+    'SHIP',
+    'SHOP',
+    'SITE',
+    'SKY',
+    'SO',
+    'SON',
+    'STAR',
+    'STAY',
+    'SUB',
+    'SUM',
+    'TD',
+    'TEAM',
+    'TECH',
+    'TELL',
+    'TEN',
+    'TERM',
+    'THO',
+    'TRIP',
+    'TRUE',
+    'TURN',
+    'TV',
+    'TWO',
+    'USA',
+    'USD',
+    'VERY',
+    'WANT',
+    'WELL',
+    'WIRE',
+    'WORK',
+    'WOW',
+    'WWW',
+    'Y',
+    'YOLO',
+    'HERO',
+    'FOX',
+    'FAT',
+    'POOL',
+    'MEN',
+    'ITM',
+    'RARE',
+    'AUTO',
+    'ECHO',
+    'SIZE'
+    'LIT',
+    'TOWN',
+    'BOSS',
+    'FLY',
+    'HAIL',
+    'ADS',
+    'CTO',
+    'TXT',
+    'DOOR',
+    'SNAP',
+    'PIN',
+    'EOD',
+    'SALT',
+    'PACK',
+    'ROAD',
+    'ROLL',
+    'WOOD',
+    'FAM',
+    'BOUT',
+    'BLUE',
+    'HAIL',
+    'SPOT',
+    'SIX',
+    'ROOF',
+    'CURE']
+
+
 class Ticker:
 
-    def __init__(self, symbol, cnt):
-        self.cnt = cnt
+    def __init__(self, symbol):
+        self.cnt = dict()
         self.symbol = symbol
-        self.normalizedCnt = 0
+        self.normalizedCnt = dict()
+        self.subreddit = ""
 
-    def normalize(self, maxCnt):
-        self.normalizedCnt = self.cnt / maxCnt
+    def normalize(self, sr, maxCnt):
+        self.normalizedCnt[sr] = self.cnt[sr] / maxCnt
 
-    def toJson(self):
-        return {
-            'symbol': self.symbol,
-            'RedditCnt': self.cnt,
-            'RedditNormalizedCnt': self.normalizedCnt
-            }
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, Ticker):
+            return self.symbol == other.symbol
+        return False
 
-    @classmethod
-    def fromCsv(csvStr):
-        items = csvStr.split(",")
-        symbol = items[0]
-        cnt = int(items[1])
-        ticker = Ticker(symbol, cnt)
-        ticker.normalizedCnt = float(items[2])
-        return ticker
+    def __gt__(self, ticker2):
+        if self.subreddit in self.normalizedCnt \
+           and self.subreddit in ticker2.normalizedCnt:
 
+            return self.normalizedCnt[self.subreddit] > \
+                ticker2.normalizedCnt[self.subreddit]
+        if self.subreddit in self.normalizedCnt:
+            return True
+        if self.subreddit in ticker2.normalizedCnt:
+            return False
+        return self.symbol > ticker2.symbol
 
 
 def stripNaturalWordTickers(tickers):
-    tickersThatAreWords = [
-      'SO', 'ALOT', 'ARE', 'AT', 'BIG', 'BOOM',
-      'BRO', 'BUY', 'CAN', 'CUT', 'NEXT', 'NICE',
-      'SAVE', 'SEE', 'SHOP', 'STAY', 'TECH',
-      'TOO', 'WORK', 'WOW', 'YOLO', 'WANT', 'VERY'
-      'ALL', 'AM', 'ANY', 'BE', 'COLD', 'GOOD',
-      'OLD', 'USA', 'FUND', 'IT', 'SEND', 'WELL',
-      'FL', 'FLEX', 'I', 'GAME', 'A', 'ALL', 'FOR',
-      'KIDS', 'LOVE', 'ONE', 'HOLD', 'MUST', 'NEED',
-      'NOW', 'ON', 'OR', 'VERY', 'TV', 'TD', 'ROCK',
-      'DO', 'DUST', 'EDIT', 'JUST', 'GO', 'DARE',
-      'CARE', 'INFO', 'GAIN', 'TRUE', 'HUGE',
-      'AWAY', 'CEO', 'EAT', 'ONTO', 'TELL', 'CASH',
-      'MAN', 'LEAD', 'BAR', 'PLAY', 'LIVE', 'NEW',
-      'TURN', 'PLAN', 'KNOW', 'TWO', 'POST', 'ELSE',
-      'SUB', 'BEAT', 'HAS', 'COST', 'HOPE', 'GOLD',
-      'SELF', 'SHIP', 'FOLD', 'TRIP', 'FORM', 'CLUB',
-      'MOM', 'SEED', 'EYES', 'PINS', 'HEAR', 'RUN',
-      'FAN', 'DOG', 'TEAM', 'EYE', 'MIND', 'FREE',
-      'FOUR', 'EVER', 'GLAD', 'SAFE', 'AGO', 'NEAR',
-      'PICK', 'fast', 'plus', 'apps', 'pass', 'star',
-      'nyt', 'haha', 'main', 'nine', 'ten', 'lack',
-      'imo', 'elon', 'bill', 'nail', 'lack', 'fit',
-      'bond', 'pays', 'gem', 'icon', 'fad', 'bud',
-      'cars', 'chad', 'age', 'mid', 'cry', 'cake',
-      'east', 'fix', 'wire', 'she', 'by', 'best',
-      'life', 'min', 'real', 'she', 'job', 're', 'rh',
-      'dd', 'll', 'don', 'deep']
     for ticker in tickersThatAreWords:
         if ticker.lower() in tickers:
             tickers.remove(ticker.lower())
@@ -75,6 +286,7 @@ def chunks(lst, n):
 
 def cleanTickerList(tickers):
 
+    tickers.extend(tickersThatAreWords)
     robin_stocks.login(
         credentials.robinhood_username,
         credentials.robinhood_password)
